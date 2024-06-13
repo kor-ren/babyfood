@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import './App.css'
 import { useMutation, useQuery } from '@apollo/client'
-import { CREATE_MEAL, GET_MEALS, GET_MEAL_BY_ID } from './queries'
+import { CREATE_MEAL, GET_MEALS } from './queries'
 
 function App() {
 
@@ -19,11 +19,6 @@ function App() {
       },
       refetchQueries: [{
         query: GET_MEALS
-      }, {
-        query: GET_MEAL_BY_ID,
-        variables: {
-          id: "test"
-        }
       }]
     })
   }, [createMeal])
@@ -39,7 +34,6 @@ function App() {
   if (!data) {
     return <div>No data</div>
   }
-
 
   return (
     <>

@@ -2,13 +2,15 @@ build: build-app
 
 ci: restore-npm build
 
-generate:
+generate: generate-go generate-apollo
+
+generate-go:
 	echo "Generate GraphQL Model"
 	cd ./server && go run github.com/99designs/gqlgen generate
 
+generate-apollo:
 	echo "Generate Apollo"
 	cd ./app && npm run compile
-
 
 restore-npm:
 	cd ./app && npm ci

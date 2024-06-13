@@ -14,11 +14,19 @@ type scanInterface interface {
 
 const mealFields = "id, name, rating, image, created_at, updated_at"
 
-func (data *DataContext) GetMeals() ([]*model.Meal, error) {
+func (data *DataContext) GetMeals(name *string) ([]*model.Meal, error) {
 
 	var result []*model.Meal
 
-	rows, err := data.db.Query(fmt.Sprintf("SELECT %s FROM meals ORDER BY name, id", mealFields))
+	var args []interface{}
+	where := ""
+
+	if name != nil {
+		where = " WHERE name LIKE ?"
+		args = append(args, fmt.Sprintf("%%%s%%", *name))
+	}
+
+	rows, err := data.db.Query(fmt.Sprintf("SELECT %s FROM meals %s ORDER BY name, id", mealFields, where), args...)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +93,52 @@ func (data *DataContext) CreateMeal(input model.NewMeal) (*model.Meal, error) {
 }
 
 func (data *DataContext) UpdateMeal(input model.UpdateMeal) (*model.Meal, error) {
-	return nil, fmt.Errorf("not implemented")
+
+	var args []interface{}
+	atLeastOne := false
+
+	sql := "UPDATE meals SET "
+
+	addIfSet := func(value any, col string, checkEmpty bool) {
+		if checkEmpty && value == nil {
+			return
+		}
+
+		if atLeastOne {
+			sql += ", "
+		}
+
+		sql = fmt.Sprintf("%s %s = ? ", sql, col)
+		args = append(args, value)
+		atLeastOne = true
+	}
+
+	addIfSet(input.Name, "name", true)
+	addIfSet(input.Image, "image", true)
+
+	if input.Rating != nil {
+		addIfSet(input.Rating.Value, "rating", false)
+	}
+
+	if !atLeastOne {
+		return nil, fmt.Errorf("no changes")
+	}
+
+	sql = fmt.Sprintf("%s, updated_at = CURRENT_TIMESTAMP WHERE id = ? RETURNING %s", sql, mealFields)
+	args = append(args, input.ID)
+
+	row := data.db.QueryRow(sql, args...)
+
+	if err := row.Err(); err != nil {
+		return nil, err
+	}
+
+	meal, err := scanAsMeal(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return meal, nil
 }
 
 func scanAsMeal(rows scanInterface) (*model.Meal, error) {

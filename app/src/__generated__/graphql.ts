@@ -60,6 +60,11 @@ export type QueryMealArgs = {
   id: Scalars['ID']['input'];
 };
 
+
+export type QueryMealsArgs = {
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type RatingValue = {
   value?: InputMaybe<Scalars['Int']['input']>;
 };

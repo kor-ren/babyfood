@@ -22,8 +22,8 @@ func (r *mutationResolver) UpdateMeal(ctx context.Context, input model.UpdateMea
 }
 
 // Meals is the resolver for the meals field.
-func (r *queryResolver) Meals(ctx context.Context) ([]*model.Meal, error) {
-	return data.For(ctx).GetMeals()
+func (r *queryResolver) Meals(ctx context.Context, name *string) ([]*model.Meal, error) {
+	return data.For(ctx).GetMeals(name)
 }
 
 // Meal is the resolver for the meal field.

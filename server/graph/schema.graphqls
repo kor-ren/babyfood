@@ -14,7 +14,7 @@ type Meal {
 }
 
 type Query {
-  meals: [Meal!]!
+  meals(name: String): [Meal!]!
   meal(id: ID!): Meal!
 }
 
