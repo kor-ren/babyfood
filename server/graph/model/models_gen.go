@@ -2,11 +2,17 @@
 
 package model
 
+import (
+	"time"
+)
+
 type Meal struct {
-	ID     string  `json:"id"`
-	Name   string  `json:"name"`
-	Rating *int    `json:"rating,omitempty"`
-	Image  *string `json:"image,omitempty"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Rating    *int      `json:"rating,omitempty"`
+	Image     *string   `json:"image,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type Mutation struct {

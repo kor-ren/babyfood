@@ -13,7 +13,8 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
  * Therefore it is highly recommended to use the babel or swc plugin for production.
  */
 const documents = {
-    "\n    query getMeals {\n        meals {\n            id\n            name\n            rating\n        }\n    }\n    ": types.GetMealsDocument,
+    "\n    query getMeals {\n        meals {\n            id\n            name\n            rating\n            image\n        }\n    }\n    ": types.GetMealsDocument,
+    "\n    query getMealById($id: ID!) {\n        meal(id: $id) {\n            id\n            name\n            rating\n            image\n        }\n    }\n    ": types.GetMealByIdDocument,
     "\n    mutation createMeal($input: NewMeal!) {\n        createMeal(input: $input) {\n            id\n            name\n        }\n    }\n    ": types.CreateMealDocument,
 };
 
@@ -34,7 +35,11 @@ export function gql(source: string): unknown;
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function gql(source: "\n    query getMeals {\n        meals {\n            id\n            name\n            rating\n        }\n    }\n    "): (typeof documents)["\n    query getMeals {\n        meals {\n            id\n            name\n            rating\n        }\n    }\n    "];
+export function gql(source: "\n    query getMeals {\n        meals {\n            id\n            name\n            rating\n            image\n        }\n    }\n    "): (typeof documents)["\n    query getMeals {\n        meals {\n            id\n            name\n            rating\n            image\n        }\n    }\n    "];
+/**
+ * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function gql(source: "\n    query getMealById($id: ID!) {\n        meal(id: $id) {\n            id\n            name\n            rating\n            image\n        }\n    }\n    "): (typeof documents)["\n    query getMealById($id: ID!) {\n        meal(id: $id) {\n            id\n            name\n            rating\n            image\n        }\n    }\n    "];
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

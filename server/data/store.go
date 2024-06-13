@@ -2,9 +2,8 @@ package data
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
-
-	"github.com/dgraph-io/badger/v4"
 )
 
 type ctxKey string
@@ -14,10 +13,10 @@ const (
 )
 
 type DataContext struct {
-	db *badger.DB
+	db *sql.DB
 }
 
-func NewDataContext(db *badger.DB) *DataContext {
+func NewDataContext(db *sql.DB) *DataContext {
 	dataContext := &DataContext{
 		db: db,
 	}
@@ -25,7 +24,7 @@ func NewDataContext(db *badger.DB) *DataContext {
 	return dataContext
 }
 
-func Middleware(db *badger.DB, next http.Handler) http.Handler {
+func Middleware(db *sql.DB, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		dataContext := NewDataContext(db)
 

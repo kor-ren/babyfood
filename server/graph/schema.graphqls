@@ -2,15 +2,20 @@
 #
 # https://gqlgen.com/getting-started/
 
+scalar Time
+
 type Meal {
   id: ID!
   name: String!
   rating: Int
   image: String
+  createdAt: Time!
+  updatedAt: Time!
 }
 
 type Query {
   meals: [Meal!]!
+  meal(id: ID!): Meal!
 }
 
 input NewMeal {
@@ -32,5 +37,5 @@ input UpdateMeal {
 
 type Mutation {
   createMeal(input: NewMeal!): Meal!
-  updateMeal(input: UpdateMeal): Meal!
+  updateMeal(input: UpdateMeal!): Meal!
 }

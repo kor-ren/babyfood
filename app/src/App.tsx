@@ -1,11 +1,11 @@
 import { useCallback } from 'react'
 import './App.css'
 import { useMutation, useQuery } from '@apollo/client'
-import { CREATE_MEAL, GET_MEALS } from './queries'
+import { CREATE_MEAL, GET_MEALS, GET_MEAL_BY_ID } from './queries'
 
 function App() {
 
-  const { data, loading, error, refetch } = useQuery(GET_MEALS)
+  const { data, loading, error } = useQuery(GET_MEALS)
 
   const [createMeal] = useMutation(CREATE_MEAL)
 
@@ -13,12 +13,20 @@ function App() {
     createMeal({
       variables: {
         input: {
-          name: "Test",
+          name: "Test " + new Date().toISOString(),
           rating: 2
         }
-      }
-    }).finally(() => refetch())
-  }, [createMeal, refetch])
+      },
+      refetchQueries: [{
+        query: GET_MEALS
+      }, {
+        query: GET_MEAL_BY_ID,
+        variables: {
+          id: "test"
+        }
+      }]
+    })
+  }, [createMeal])
 
   if (loading) {
     return <div>Loading...</div>
@@ -37,11 +45,13 @@ function App() {
     <>
       <table>
         <tr>
+          <th>Id</th>
           <th>Name</th>
           <th>Rating</th>
         </tr>
       {data.meals.map(m => (
         <tr key={m.id}>
+          <td>{m.id}</td>
           <td>{m.name}</td>
           <td>{m.rating}</td>
         </tr>

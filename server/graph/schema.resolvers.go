@@ -17,13 +17,18 @@ func (r *mutationResolver) CreateMeal(ctx context.Context, input model.NewMeal) 
 }
 
 // UpdateMeal is the resolver for the updateMeal field.
-func (r *mutationResolver) UpdateMeal(ctx context.Context, input *model.UpdateMeal) (*model.Meal, error) {
+func (r *mutationResolver) UpdateMeal(ctx context.Context, input model.UpdateMeal) (*model.Meal, error) {
 	return data.For(ctx).UpdateMeal(input)
 }
 
 // Meals is the resolver for the meals field.
 func (r *queryResolver) Meals(ctx context.Context) ([]*model.Meal, error) {
 	return data.For(ctx).GetMeals()
+}
+
+// Meal is the resolver for the meal field.
+func (r *queryResolver) Meal(ctx context.Context, id string) (*model.Meal, error) {
+	return data.For(ctx).GetMealById(id)
 }
 
 // Mutation returns MutationResolver implementation.

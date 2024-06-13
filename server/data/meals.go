@@ -1,140 +1,110 @@
 package data
 
 import (
-	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
 
-	"github.com/dgraph-io/badger/v4"
-	"github.com/google/uuid"
 	"github.com/kor-ren/babyfood/graph/model"
 )
 
-var (
-	mealsPrefix = []byte("meals:")
-)
+type scanInterface interface {
+	Scan(dest ...any) error
+}
+
+const mealFields = "id, name, rating, image, created_at, updated_at"
 
 func (data *DataContext) GetMeals() ([]*model.Meal, error) {
 
-	result := make([]*model.Meal, 0)
+	var result []*model.Meal
 
-	err := data.db.View(func(txn *badger.Txn) error {
-		itr := txn.NewIterator(badger.IteratorOptions{
-			Prefix:       mealsPrefix,
-			PrefetchSize: 10,
-		})
-		defer itr.Close()
+	rows, err := data.db.Query(fmt.Sprintf("SELECT %s FROM meals ORDER BY name, id", mealFields))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-		for itr.Rewind(); itr.Valid(); itr.Next() {
-			item := itr.Item()
-			err := item.Value(func(val []byte) error {
-				meal := model.Meal{}
+	for rows.Next() {
+		meal, err := scanAsMeal(rows)
 
-				if parseErr := json.Unmarshal(val, &meal); parseErr != nil {
-					return parseErr
-				}
-
-				result = append(result, &meal)
-				return nil
-			})
-
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return nil, err
 		}
 
-		return nil
-	})
+		result = append(result, meal)
+	}
 
-	if err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
 	return result, nil
+
 }
 
-func (data *DataContext) CreateMeal(newMeal model.NewMeal) (*model.Meal, error) {
-
-	id, err := uuid.NewV7()
-
-	if err != nil {
-		return nil, fmt.Errorf("could not create id: %w", err)
-	}
-
-	result := &model.Meal{
-		ID:     id.String(),
-		Name:   newMeal.Name,
-		Rating: newMeal.Rating,
-		Image:  newMeal.Image,
-	}
-
-	key := append(mealsPrefix, []byte(result.ID)...)
-
-	value, err := json.Marshal(result)
+func (data *DataContext) GetMealById(id string) (*model.Meal, error) {
+	idInt, err := strconv.Atoi(id)
 
 	if err != nil {
-		return nil, fmt.Errorf("could not convert to json: %w", err)
+		return nil, fmt.Errorf("id is not allowed")
 	}
 
-	err = data.db.Update(func(txn *badger.Txn) error {
-		return txn.Set(key, value)
-	})
+	row := data.db.QueryRow(fmt.Sprintf("SELECT %s FROM meals WHERE id = ?", mealFields), idInt)
 
-	if err != nil {
+	if err := row.Err(); err != nil {
 		return nil, err
 	}
 
-	return result, nil
-}
-
-func (data *DataContext) UpdateMeal(input *model.UpdateMeal) (*model.Meal, error) {
-	key := append(mealsPrefix, []byte(input.ID)...)
-
-	meal := &model.Meal{}
-
-	err := data.db.Update(func(txn *badger.Txn) error {
-		item, itemErr := txn.Get(key)
-		if itemErr != nil {
-			return fmt.Errorf("not found: %w", itemErr)
-		}
-
-		itemErr = item.Value(func(val []byte) error {
-			return json.Unmarshal(val, meal)
-		})
-
-		if itemErr != nil {
-			return fmt.Errorf("could read data from db: %w", itemErr)
-		}
-
-		if input.Name != nil {
-			meal.Name = *input.Name
-		}
-
-		if input.Image != nil {
-			meal.Image = input.Image
-		}
-
-		if input.Rating != nil {
-			meal.Rating = input.Rating.Value
-		}
-
-		jsonData, jsonErr := json.Marshal(meal)
-
-		if jsonErr != nil {
-			return fmt.Errorf("could not serialize new data: %w", jsonErr)
-		}
-
-		itemErr = txn.Set(key, jsonData)
-
-		if itemErr != nil {
-			return fmt.Errorf("could not store new data: %w", itemErr)
-		}
-
-		return nil
-	})
+	meal, err := scanAsMeal(row)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return meal, nil
+}
+
+func (data *DataContext) CreateMeal(input model.NewMeal) (*model.Meal, error) {
+	row := data.db.QueryRow(
+		fmt.Sprintf("INSERT INTO meals (name, rating, image) VALUES (?, ?, ?) RETURNING %s", mealFields),
+		input.Name,
+		input.Rating,
+		input.Image,
+	)
+
+	if err := row.Err(); err != nil {
+		return nil, err
+	}
+
+	meal, err := scanAsMeal(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return meal, nil
+}
+
+func (data *DataContext) UpdateMeal(input model.UpdateMeal) (*model.Meal, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func scanAsMeal(rows scanInterface) (*model.Meal, error) {
+	var id int
+	var rating *int
+	var name string
+	var image *string
+	var created_at, updated_at time.Time
+
+	if err := rows.Scan(&id, &name, &rating, &image, &created_at, &updated_at); err != nil {
+		return nil, err
+	}
+
+	return &model.Meal{
+		ID:        fmt.Sprintf("%d", id),
+		Name:      name,
+		Rating:    rating,
+		Image:     image,
+		CreatedAt: created_at,
+		UpdatedAt: updated_at,
+	}, nil
 }

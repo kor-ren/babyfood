@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,9 +9,12 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/dgraph-io/badger/v4"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/sqlite"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/kor-ren/babyfood/data"
 	"github.com/kor-ren/babyfood/graph"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func getEnvOrDefault(key string, defaultValue string) string {
@@ -26,19 +30,26 @@ func getEnvOrDefault(key string, defaultValue string) string {
 func main() {
 
 	enablePlayground := getEnvOrDefault("PLAYGROUND_ENABLED", "true")
-	dbPath := getEnvOrDefault("DB_PATH", "/tmp/babyfood-db")
+	dbPath := getEnvOrDefault("DB_PATH", ":memory:")
 	port := getEnvOrDefault("PORT", "8080")
 
-	db, err := badger.Open(badger.DefaultOptions(dbPath))
+	staticFilePath := getEnvOrDefault("STATIC_FILES_PATH", "")
 
+	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		panic(fmt.Errorf("could not open db: %w", err))
 	}
+	defer db.Close()
+
+	initDb(db)
 
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
 
 	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir("app/dist")))
+
+	if staticFilePath != "" {
+		mux.Handle("/", http.FileServer(http.Dir(staticFilePath)))
+	}
 
 	if enablePlayground == "true" {
 		mux.Handle("/playground", playground.Handler("GraphQL playground", "/query"))
@@ -47,6 +58,29 @@ func main() {
 
 	middleware := data.Middleware(db, mux)
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+	log.Printf("starting on http://localhost:%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, middleware))
+}
+
+func initDb(db *sql.DB) {
+	driver, err := sqlite.WithInstance(db, &sqlite.Config{})
+	if err != nil {
+		log.Panic(fmt.Errorf("could not get driver for db: %w", err))
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://db/migrations",
+		"sqlite3",
+		driver,
+	)
+
+	if err != nil {
+		log.Panic(fmt.Errorf("could not get migrations: %w", err))
+	}
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		log.Panic(fmt.Errorf("migration failed: %w", err))
+	}
+
+	log.Println("Migrations applied successfully!")
 }
