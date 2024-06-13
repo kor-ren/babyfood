@@ -21,6 +21,7 @@ ENV PLAYGROUND_ENABLED "false"
 ENV STATIC_FILES_PATH "./static"
 ENV COOKIE_SECURE "false"
 ENV TOKEN "test"
+ENV SHARE_URL "http://localhost:8080"
 EXPOSE 8080
 
 USER nobody

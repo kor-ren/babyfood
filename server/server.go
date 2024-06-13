@@ -36,6 +36,7 @@ func main() {
 	token := getEnvOrDefault("TOKEN", "test")
 	tokenHash := auth.GetTokenHash(token)
 	secureCookie := getEnvOrDefault("COOKIE_SECURE", "false")
+	shareUrlString := getEnvOrDefault("SHARE_URL", "http://localhost:8080")
 
 	staticFilePath := getEnvOrDefault("STATIC_FILES_PATH", "")
 
@@ -59,6 +60,7 @@ func main() {
 		mux.Handle("/playground", auth.Middleware(tokenHash, secureCookie, playground.Handler("GraphQL playground", "/query")))
 	}
 	mux.Handle("/query", auth.Middleware(tokenHash, secureCookie, srv))
+	mux.Handle("/share", auth.Middleware(tokenHash, secureCookie, auth.ShareHandler(token, shareUrlString)))
 
 	mux.HandleFunc("/login", auth.LoginHandler(token, tokenHash, secureCookie))
 

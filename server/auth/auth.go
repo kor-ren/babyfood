@@ -3,8 +3,13 @@ package auth
 import (
 	"crypto"
 	"encoding/base64"
+	"fmt"
+	"log"
 	"net/http"
+	"net/url"
 	"time"
+
+	"github.com/skip2/go-qrcode"
 )
 
 const (
@@ -46,6 +51,32 @@ func LoginHandler(token string, tokenHash string, secure string) http.HandlerFun
 
 		setCookie(w, tokenHash, secure)
 		http.Redirect(w, r, "/", http.StatusFound)
+	}
+}
+
+func ShareHandler(token string, shareUrlString string) http.HandlerFunc {
+
+	shareUrl, err := url.Parse(shareUrlString)
+
+	if err != nil {
+		log.Panic(fmt.Errorf("could not parse shareUrl: %w", err))
+	}
+
+	values := url.Values{}
+	values.Add("token", token)
+
+	shareUrl.Path = "/login"
+	shareUrl.RawQuery = values.Encode()
+
+	png, err := qrcode.Encode(shareUrl.String(), qrcode.Medium, 512)
+
+	if err != nil {
+		log.Panic(fmt.Errorf("could not generate qrcode: %w", err))
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/png")
+		w.Write(png)
 	}
 }
 
