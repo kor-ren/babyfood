@@ -12,6 +12,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/kor-ren/babyfood/auth"
 	"github.com/kor-ren/babyfood/data"
 	"github.com/kor-ren/babyfood/graph"
 	_ "github.com/mattn/go-sqlite3"
@@ -32,6 +33,9 @@ func main() {
 	enablePlayground := getEnvOrDefault("PLAYGROUND_ENABLED", "true")
 	dbPath := getEnvOrDefault("DB_PATH", ":memory:")
 	port := getEnvOrDefault("PORT", "8080")
+	token := getEnvOrDefault("TOKEN", "test")
+	tokenHash := auth.GetTokenHash(token)
+	secureCookie := getEnvOrDefault("COOKIE_SECURE", "false")
 
 	staticFilePath := getEnvOrDefault("STATIC_FILES_PATH", "")
 
@@ -48,13 +52,15 @@ func main() {
 	mux := http.NewServeMux()
 
 	if staticFilePath != "" {
-		mux.Handle("/", http.FileServer(http.Dir(staticFilePath)))
+		mux.Handle("/", auth.Middleware(tokenHash, secureCookie, http.FileServer(http.Dir(staticFilePath))))
 	}
 
 	if enablePlayground == "true" {
-		mux.Handle("/playground", playground.Handler("GraphQL playground", "/query"))
+		mux.Handle("/playground", auth.Middleware(tokenHash, secureCookie, playground.Handler("GraphQL playground", "/query")))
 	}
-	mux.Handle("/query", srv)
+	mux.Handle("/query", auth.Middleware(tokenHash, secureCookie, srv))
+
+	mux.HandleFunc("/login", auth.LoginHandler(token, tokenHash, secureCookie))
 
 	middleware := data.Middleware(db, mux)
 

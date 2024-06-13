@@ -19,6 +19,8 @@ COPY --from=build-go /babyfood /app/babyfood
 ENV PORT "8080"
 ENV PLAYGROUND_ENABLED "false"
 ENV STATIC_FILES_PATH "./static"
+ENV COOKIE_SECURE "false"
+ENV TOKEN "test"
 EXPOSE 8080
 
 USER nobody
