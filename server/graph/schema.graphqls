@@ -1,0 +1,36 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+type Meal {
+  id: ID!
+  name: String!
+  rating: Int
+  image: String
+}
+
+type Query {
+  meals: [Meal!]!
+}
+
+input NewMeal {
+  name: String!
+  rating: Int
+  image: String
+}
+
+input RatingValue {
+  value: Int
+}
+
+input UpdateMeal {
+  id: ID!
+  name: String
+  rating: RatingValue
+  image: String
+}
+
+type Mutation {
+  createMeal(input: NewMeal!): Meal!
+  updateMeal(input: UpdateMeal): Meal!
+}
