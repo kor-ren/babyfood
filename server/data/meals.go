@@ -73,6 +73,7 @@ func (data *DataContext) GetMealById(id string) (*model.Meal, error) {
 }
 
 func (data *DataContext) CreateMeal(input model.NewMeal) (*model.Meal, error) {
+
 	row := data.db.QueryRow(
 		fmt.Sprintf("INSERT INTO meals (name, rating, image) VALUES (?, ?, ?) RETURNING %s", mealFields),
 		input.Name,
